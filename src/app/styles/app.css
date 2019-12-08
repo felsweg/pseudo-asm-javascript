@@ -28,14 +28,22 @@ html, body {
     margin: 0px auto;
   }
 
-  /*
+  
   button {
-    background: #CABA00;
+    background: #212121;
     border: 0px;
     font-family: mono;
-    color: #212121;
-    padding: 20px;
-  }*/
+    color: #CABA00;
+    padding: 5px 20px 5px 20px;
+  }
+
+  /* button:active {
+    background: #CABA00;
+    color:#212121;
+  }
+  button:focus {
+    outline:none;
+  } */
   
   ::selection {
     background: #CABA00;

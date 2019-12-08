@@ -30,6 +30,16 @@ var init_logic = function () {
         }
     };
 
+    ta.value = "mov acc, 10\n\
+main:\n\
+sub 1\n\
+cmp acc,0\n\
+jeq end\n\
+jmp main\n\
+\n\
+end:\n\
+swp"
+
 
     ta.onblur = function () {
         // console.log("reset and compile");
@@ -41,30 +51,39 @@ var init_logic = function () {
     window.onerror = function (e) {
         l_stat.innerHTML = "<div style='color: #ff0000'>" + e + "</div>";
     };
+    /// _________________________
 
+    let line_positions = [];
 
-    let step = function () {
-        //fill_empty_space(ta);
+    let values = ta.value.split("\n");
+    num_lines = values.length;
 
-        let values = ta.value.split("\n");
-        num_lines = values.length;
-
-        ta.focus();
-        ta.selectionStart = start;
+    while (line < (num_lines)) {
+        // ta.focus();
+        // ta.selectionStart = start;
+        // if (line == 0) {
+        //     ta.selectionEnd = start + values[line].length;
+        // } else {
+        //     ta.selectionEnd = start + values[line].length + 1;
+        // }
         if (line == 0) {
-            ta.selectionEnd = start + values[line].length;
+            line_positions.push({
+                'begin': start,
+                'end': start + values[line].length
+            })
         } else {
-            ta.selectionEnd = start + values[line].length + 1;
+            line_positions.push({
+                'begin': start,
+                'end': start + values[line].length + 1
+            })
         }
+
 
         // update positions
         start += values[line].length + 1;
         line = line + 1;
 
-        if (line >= (num_lines)) {
-            line = 0;
-            start = 0;
-        }
+
 
         let empty = /^[\s]*$/g;
         if (empty.test(values[line])) {
@@ -75,9 +94,24 @@ var init_logic = function () {
 
         let label_tst = new RegExp("^[a-z]+\:$");
         if (label_tst.test(values[line])) {
+            // skip this line
             start += values[line].length + 1;
             line = line + 1;
         }
+
+    }
+    /// _________________________
+
+
+    let step = function () {
+
+
+        // debugger;
+        let lp = line_positions[cpu.get_pc()];
+
+        ta.focus();
+        ta.selectionStart = lp.begin;
+        ta.selectionEnd = lp.end;
 
 
 
@@ -86,11 +120,17 @@ var init_logic = function () {
 
     // configure buttons
     btn_advance.onclick = function () {
-        step();
+
+
+        if (cpu.memory.length == 0) {
+            cpu.compile(ta.value);
+        }
 
         // execute step
         // prototype. this will imply line mismatches
         cpu.execute();
+
+        step();
 
         l_acc.innerText = cpu.get_acc();
         l_bak.innerText = cpu.get_bak();
@@ -101,13 +141,12 @@ var init_logic = function () {
         line = 0;
         start = 0;
 
-        //debugger;
         console.log("compiling");
         cpu.reset();
         cpu.compile(ta.value);
     };
 
-    // test automatic playbacl
+    // test automatic playback
     // setInterval(step, 200);
 
 };
@@ -132,32 +171,12 @@ function fill_empty_space(e) {
     e.value = text;
 }
 
-// TODO: is this bogus?
-// inverse operation for fill_empty_space
-// function remove_empty_space(e) {
-//     let split = e.value.split("\n");
-//     let text = "";
-
-//     for (i = 0; i < split.length; i++) {
-//         let line = split[i].trim();
-
-//         if (i == split.length - 1) {
-//             text += line;
-//         } else {
-//             text += line + "\n";
-//         }
-//     }
-
-//     e.value = text;
-// }
-
 // clamp values below 0 to 0
 function clamp(x) {
     return (x < 0) ? 0 : x;
 }
 
 /// logic
-
 var cpu = {
     'labels': [],
     'memory': [],
@@ -225,7 +244,6 @@ var cpu = {
         return this.registers.flg < 0;
     },
     'set_pc': function (p) {
-        console.log("set pc to=", p);
         this.registers.pc = p;
     },
     'get_pc': function () {
@@ -280,8 +298,6 @@ var cpu = {
         this.registers.flg = 0;
     },
     'execute': function () {
-        // debugger;
-        console.log("pc=", this.get_pc());
         this.memory[this.get_pc()](this);
         this.inc_pc();
     },
@@ -297,11 +313,6 @@ var cpu = {
     //       to make the actual execution more intuitive
     'compile': function (cc) {
 
-        // matchers
-
-
-
-
         // clean up non-tokens
         let code = cc
             .replace(/\n/g, " ")
@@ -313,8 +324,6 @@ var cpu = {
             .filter(function (v) {
                 return v.length != 0;
             });
-
-        // debugger;
 
         // the 'lexer' stores all tokens
         // and returns the next
@@ -346,8 +355,6 @@ var cpu = {
         let seen_label = 0;
 
         while (lex.has_next()) {
-            console.log("label['end']=", this.labels['end']);
-
             // check, if the last instruction was not a label
             if (seen_label == 0) {
 
@@ -357,7 +364,6 @@ var cpu = {
 
                 while (label_stack.length != 0) {
                     let _label = label_stack.pop();
-                    console.log("set index=", index, "for label=", _label);
                     this.labels[_label] = index;
                 }
             }
@@ -371,7 +377,6 @@ var cpu = {
             switch (symbol) {
                 case 'mov':
                     let target = lex.next();
-                    console.log("target=", target);
                     switch (target) {
                         case 'acc':  // mov instruction
                             {
@@ -435,9 +440,7 @@ var cpu = {
                                 }
                                 break;
                             }
-                        // bak is disallowed as target
                         default:
-                            // debugger;
                             throw new Error("Illegal Target Register: ", target);
                     }
                     break;
@@ -482,7 +485,6 @@ var cpu = {
                                             });
                                             break;
                                         default:
-                                            // debugger;
                                             let r_number = new RegExp("^[0-9]+$");
                                             if (!r_number.test(source)) {
                                                 throw new Error("Not a number");
@@ -636,11 +638,9 @@ var cpu = {
                             throw new Error("Illegal label defintion: ", label);
                         }
                         this.memory.push(function (a) {
-                            // can this break ?
                             if (a.labels[label] == null) {
                                 throw new Error("Label not found: ", label);
                             }
-                            console.log("jmp to =", a.labels[label], "for label=", label);
                             a.set_pc(a.labels[label] - 1);
                         });
                         break;
@@ -653,7 +653,6 @@ var cpu = {
                             throw new Error("Illegal label defintion: ", label);
                         }
                         this.memory.push(function (a) {
-                            // debugger;
                             if (a.get_flg() == 0) {
                                 a.set_pc(a.labels[label] - 1);
                             }
@@ -688,7 +687,6 @@ var cpu = {
 
                         this.memory.push(function (a) {
                             if (a.get_flg() == 0) {
-                                // debugger;
                                 a.set_pc(a.labels[label] - 1);
                             }
                         });
@@ -696,7 +694,6 @@ var cpu = {
                         break;
                     }
                 case 'jgz':
-                    // debugger;
                     {
 
                         let label = lex.next();
@@ -743,9 +740,6 @@ var cpu = {
                                 });
                                 break;
                             default:
-                                // debugger;
-
-
                                 let r_number = /^[0-9]+$/g;
                                 if (!r_number.test(next)) {
                                     throw new Error("Not a number: ", next);
@@ -777,9 +771,7 @@ var cpu = {
                                 if (!r_number.test(next)) {
                                     throw new Error("Not a number: ", next);
                                 }
-                                console.log("sub ins.mem len=", this.memory.length + 1);
                                 this.memory.push(function (a) {
-                                    console.log("subtract");
                                     let number = parseInt(next);
                                     a.sub_acc(number);
                                 });
@@ -887,28 +879,14 @@ var cpu = {
                     this.inc_pc();
                     break;
 
-
                 default:
-                    // debugger;
-
                     let r_label_def = new RegExp("^[a-z]+\:$");
                     if (!r_label_def.test(symbol)) {
                         throw new Error("Illegal Symbol: ", symbol, "here");
                     }
-
-                    //this.memory.push(function (a) {
-                    //debugger;
                     let label = symbol.replace(":", "");
-                    // a.labels[label] = a.get_pc();
-                    console.log("encountered label=", label);
                     label_stack.push(label);
                     seen_label += 1;
-
-
-
-                //});
-
-
             }
         } // end parsing
 
@@ -922,7 +900,6 @@ var cpu = {
 
             while (label_stack.length != 0) {
                 let _label = label_stack.pop();
-                console.log("set index=", index, "for label=", _label);
                 this.labels[_label] = index;
             }
         }
