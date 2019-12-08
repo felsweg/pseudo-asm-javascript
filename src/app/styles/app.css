@@ -1,0 +1,76 @@
+html, body {
+    background: #212121;
+    font-size: 9pt;
+    color: #CABA00;
+    font-family: mono;
+  }
+  
+  .center {
+    width: 600px;
+    margin: 0px auto;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    grid-auto-rows: minimax(600px, auto);
+    gap: 20px;
+  }
+  
+  textarea {
+    background: transparent;
+    color: #CABA00;
+    overflow: hidden;
+    border: 1px solid #CCCC00;
+    resize: none;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 1.0em;
+    padding: 10px;
+    column-count: 50;
+    margin: 0px auto;
+  }
+
+  /*
+  button {
+    background: #CABA00;
+    border: 0px;
+    font-family: mono;
+    color: #212121;
+    padding: 20px;
+  }*/
+  
+  ::selection {
+    background: #CABA00;
+    color: #212121;
+  }
+
+
+  /** grid stuff */
+.vmeditor {
+    grid-column: 1;
+    grid-row: 1/4;
+    width: 200px;
+}
+
+.register_acc {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.register_bak  {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.register_tst {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.control_step {
+  grid-column: 1;
+  grid-row: 4;
+}
+
+.control_play {
+  grid-column: 2;
+  grid-row: 4;
+}
