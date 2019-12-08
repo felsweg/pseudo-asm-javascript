@@ -269,72 +269,72 @@ var cpu = {
 
         while (code.length != 0) {
             let symbol = lex.next();
-
-
             switch (symbol) {
                 case 'mov':
                     let target = lex.next();
                     switch (target) {
                         case 'acc':  // mov instruction
-                            let source_acc = lex.next();
-                            switch (source_acc) {
-                                case 'bak':
-                                    this.memory.push(function () {
-                                        this.set_acc(this.get_bak());
-                                    });
-                                    break;
-                                case 'acc':
-                                    this.memory.push(function () {
-                                        this.set_acc(this.get_acc());
-                                    })
-                                    break;
-                                case 'tst':
-                                    this.memory.push(function () {
-                                        this.set_acc(this.get_tst());
-                                    })
-                                    break;
-                                default:
-                                    let r_number = /[0-9]+/g;
-                                    if (!r_number.test(source_acc)) {
-                                        throw new Error("Not a number: ", source_acc);
-                                    }
+                            {
+                                let source = lex.next();
+                                switch (source) {
+                                    case 'bak':
+                                        this.memory.push(function () {
+                                            this.set_acc(this.get_bak());
+                                        });
+                                        break;
+                                    case 'acc':
+                                        this.memory.push(function () {
+                                            this.set_acc(this.get_acc());
+                                        })
+                                        break;
+                                    case 'tst':
+                                        this.memory.push(function () {
+                                            this.set_acc(this.get_tst());
+                                        })
+                                        break;
+                                    default:
+                                        let r_number = /[0-9]+/g;
+                                        if (!r_number.test(source)) {
+                                            throw new Error("Not a number: ", source);
+                                        }
 
-                                    this.memory.push(function () {
-                                        this.set_acc(parseInt(source_acc));
-                                    })
+                                        this.memory.push(function () {
+                                            this.set_acc(parseInt(source));
+                                        })
+                                }
+                                break;
                             }
-                            break;
                         case 'tst': // mov instruction
+                            {
+                                let source = lex.next();
+                                switch (source) {
+                                    case 'bak':
+                                        this.memory.push(function () {
+                                            this.set_tst(this.get_bak());
+                                        });
+                                        break;
+                                    case 'acc':
+                                        this.memory.push(function () {
+                                            this.set_tst(this.get_acc());
+                                        })
+                                        break;
+                                    case 'tst':
+                                        this.memory.push(function () {
+                                            this.set_tst(this.get_tst());
+                                        })
+                                        break;
+                                    default:
 
-                            let source_tst = lex.next();
-                            switch (source_tst) {
-                                case 'bak':
-                                    this.memory.push(function () {
-                                        this.set_tst(this.get_bak());
-                                    });
-                                    break;
-                                case 'acc':
-                                    this.memory.push(function () {
-                                        this.set_tst(this.get_acc());
-                                    })
-                                    break;
-                                case 'tst':
-                                    this.memory.push(function () {
-                                        this.set_tst(this.get_tst());
-                                    })
-                                    break;
-                                default:
+                                        if (r_number.test(source)) {
+                                            throw new Error("Not a number");
+                                        }
 
-                                    if (r_number.test(source_tst)) {
-                                        throw new Error("Not a number");
-                                    }
-
-                                    this.memory.push(function () {
-                                        this.set_tst(parseInt(source_tst));
-                                    })
+                                        this.memory.push(function () {
+                                            this.set_tst(parseInt(source));
+                                        })
+                                }
+                                break;
                             }
-
-                            break;
                         default:
                             throw new Error("Illegal Target Register: ", target);
                     }
