@@ -252,6 +252,8 @@ var cpu = {
                 return v.length != 0;
             });
 
+        //debugger;
+
         // the 'lexer' stores all tokens
         // and returns the next
         let lex = {
@@ -259,15 +261,22 @@ var cpu = {
             'length': code.length,
             'stream': code,
             'next': function () {
+                console.log("pos=", this.pos, ", length=", this.length);
                 if (this.pos == this.length) {
+                    // this.pos = 0;
                     throw new Error("End Of Stream");
                 }
                 // debugger;
                 return this.stream[this.pos++];
+            },
+            'has_next': function () {
+                return (this.pos) < this.length;
             }
         };
 
-        while (code.length != 0) {
+        // debugger;
+
+        while (lex.has_next()) {
             let symbol = lex.next();
             switch (symbol) {
                 case 'mov':
@@ -295,7 +304,7 @@ var cpu = {
                                     default:
                                         let r_number = /[0-9]+/g;
                                         if (!r_number.test(source)) {
-                                            throw new Error("Not a number: ", source);
+                                            throw new Error("Not a number: ", source, "__");
                                         }
 
                                         this.memory.push(function () {
@@ -579,45 +588,9 @@ var cpu = {
 
             }
         } // end parsing
+
+        debugger;
     }
 }
 
-// ISA
-//
-// jmp      <label> ; unconditional jump
-// jeq      <label> ; jump, if FLG register == 0
-// jne      <label> ; jump, if FLG register != 0
-// jez      <label> ; jump, if FLG register == 0 (?)
-// jgz      <label> ; jump, if FLG register > 0
-// jlz      <label> ; jump, if FLG register < 0
-// add      Register / Num 
-// sub      Register / Num
-// div      Register / Num
-// mul      Register / Num
-// mod      Register / Num
-// mov      Register, Register / Num
-// swp      <none>          ; swaps acc and bak
-// psh      <none>          ; push a value to the stack
-// pop      <none>          ; pops a value from the stack
-// nop                      ; no operation
 
-// possible extensions
-// shl      Register / Num
-// shr      Register / Num
-// swp      Register / Num
-// xor      Register / Num
-// orr      Register / Num
-// and      Register / Num
-
-// Registers
-//
-// ACC          
-// BAK
-// FLG
-// (LFT)
-// (RGH)
-// (TOP)
-// (BOT)
-// (LST)
-// (ANY)
-// (ZER)
