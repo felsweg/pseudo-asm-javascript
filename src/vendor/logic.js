@@ -256,18 +256,20 @@ var cpu = {
         // and returns the next
         let lex = {
             'pos': 0,
-            'lenght': code.length,
+            'length': code.length,
             'stream': code,
             'next': function () {
                 if (this.pos == this.length) {
                     throw new Error("End Of Stream");
                 }
-                return this.code[pos++];
+                // debugger;
+                return this.stream[this.pos++];
             }
         };
 
         while (code.length != 0) {
             let symbol = lex.next();
+
 
             switch (symbol) {
                 case 'mov':
@@ -293,8 +295,8 @@ var cpu = {
                                     break;
                                 default:
                                     let r_number = /[0-9]+/g;
-                                    if (r_number.test(source_acc)) {
-                                        throw new Error("Not a number");
+                                    if (!r_number.test(source_acc)) {
+                                        throw new Error("Not a number: ", source_acc);
                                     }
 
                                     this.memory.push(function () {
@@ -338,191 +340,213 @@ var cpu = {
                     }
                     break;
                 case 'jmp':
-                    let label = lex.next();
-                    if (!r_label.test(label)) {
-                        throw new Error("Illegal label defintion: ", label);
-                    }
-                    this.memory.push(function () {
-                        // can this break ?
-                        if (this.labels[label] == null) {
-                            throw new Error("Label not found: ", label);
+
+                    {
+                        let label = lex.next();
+                        if (!r_label.test(label)) {
+                            throw new Error("Illegal label defintion: ", label);
                         }
-                        this.pc = this.labels[label];
-                    });
-                    break;
+                        this.memory.push(function () {
+                            // can this break ?
+                            if (this.labels[label] == null) {
+                                throw new Error("Label not found: ", label);
+                            }
+                            this.pc = this.labels[label];
+                        });
+                        break;
+                    }
                 case 'jeq':
-                    let label = lex.next();
-                    if (!r_label.test(label)) {
-                        throw new Error("Illegal label defintion: ", label);
-                    }
+                    {
+                        let label = lex.next();
+                        if (!r_label.test(label)) {
+                            throw new Error("Illegal label defintion: ", label);
+                        }
 
-                    if (this.get_tst() == 0) {
-                        this.pc = this.labels[label];
-                    }
+                        if (this.get_tst() == 0) {
+                            this.pc = this.labels[label];
+                        }
 
-                    break;
+                        break;
+                    }
                 case 'jne':
-                    let label = lex.next();
-                    if (!r_label.test(label)) {
-                        throw new Error("Illegal label defintion: ", label);
-                    }
+                    {
+                        let label = lex.next();
+                        if (!r_label.test(label)) {
+                            throw new Error("Illegal label defintion: ", label);
+                        }
 
-                    if (this.get_tst() != 0) {
-                        this.pc = this.labels[label];
-                    }
+                        if (this.get_tst() != 0) {
+                            this.pc = this.labels[label];
+                        }
 
-                    break;
+                        break;
+                    }
                 case 'jez': // duplicate?
-                    let label = lex.next();
-                    if (!r_label.test(label)) {
-                        throw new Error("Illegal label defintion: ", label);
-                    }
+                    {
+                        let label = lex.next();
+                        if (!r_label.test(label)) {
+                            throw new Error("Illegal label defintion: ", label);
+                        }
 
-                    if (this.get_tst() == 0) {
-                        this.pc = this.labels[label];
+                        if (this.get_tst() == 0) {
+                            this.pc = this.labels[label];
+                        }
+                        break;
                     }
-                    break;
                 case 'jgz':
-                    let label = lex.next();
-                    if (!r_label.test(label)) {
-                        throw new Error("Illegal label defintion: ", label);
-                    }
+                    {
+                        let label = lex.next();
+                        if (!r_label.test(label)) {
+                            throw new Error("Illegal label defintion: ", label);
+                        }
 
-                    if (this.get_tst() > 0) {
-                        this.pc = this.labels[label];
+                        if (this.get_tst() > 0) {
+                            this.pc = this.labels[label];
+                        }
+                        break;
                     }
-                    break;
                 case 'jlz':
-                    let label = lex.next();
-                    if (!r_label.test(label)) {
-                        throw new Error("Illegal label defintion: ", label);
-                    }
+                    {
+                        let label = lex.next();
+                        if (!r_label.test(label)) {
+                            throw new Error("Illegal label defintion: ", label);
+                        }
 
-                    if (this.get_tst() < 0) {
-                        this.pc = this.labels[label];
+                        if (this.get_tst() < 0) {
+                            this.pc = this.labels[label];
+                        }
+                        break;
                     }
-                    break;
                 case 'add':
-                    let next = lex.next();
-                    switch (next) {
-                        case 'acc':
-                            this.memory.push(function () {
-                                this.add_acc(this.get_acc());
-                            });
-                            break;
-                        case 'bak':
-                            this.memory.push(function () {
-                                this.add_acc(this.get_bak());
-                            });
-                            break;
-                        default:
-                            if (!r_number.test(next)) {
-                                throw new Error("Not a number: ", next);
-                            }
+                    {
+                        let next = lex.next();
+                        switch (next) {
+                            case 'acc':
+                                this.memory.push(function () {
+                                    this.add_acc(this.get_acc());
+                                });
+                                break;
+                            case 'bak':
+                                this.memory.push(function () {
+                                    this.add_acc(this.get_bak());
+                                });
+                                break;
+                            default:
+                                if (!r_number.test(next)) {
+                                    throw new Error("Not a number: ", next);
+                                }
 
-                            this.memory.push(function () {
-                                let number = parseInt(next);
-                                this.add_acc(number);
-                            });
+                                this.memory.push(function () {
+                                    let number = parseInt(next);
+                                    this.add_acc(number);
+                                });
+                        }
+                        break;
                     }
-                    break;
                 case 'sub':
-                    let next = lex.next();
-                    switch (next) {
-                        case 'acc':
-                            this.memory.push(function () {
-                                this.sub_acc(this.get_acc());
-                            });
-                            break;
-                        case 'bak':
-                            this.memory.push(function () {
-                                this.sub_acc(this.get_bak());
-                            });
-                            break;
-                        default:
-                            if (!r_number.test(next)) {
-                                throw new Error("Not a number: ", next);
-                            }
+                    {
+                        let next = lex.next();
+                        switch (next) {
+                            case 'acc':
+                                this.memory.push(function () {
+                                    this.sub_acc(this.get_acc());
+                                });
+                                break;
+                            case 'bak':
+                                this.memory.push(function () {
+                                    this.sub_acc(this.get_bak());
+                                });
+                                break;
+                            default:
+                                if (!r_number.test(next)) {
+                                    throw new Error("Not a number: ", next);
+                                }
 
-                            this.memory.push(function () {
-                                let number = parseInt(next);
-                                this.sub_acc(number);
-                            });
+                                this.memory.push(function () {
+                                    let number = parseInt(next);
+                                    this.sub_acc(number);
+                                });
+                        }
+                        break;
                     }
-                    break;
                 case 'mul':
-                    let next = lex.next();
-                    switch (next) {
-                        case 'acc':
-                            this.memory.push(function () {
-                                this.mul_acc(this.get_acc());
-                            });
-                            break;
-                        case 'bak':
-                            this.memory.push(function () {
-                                this.mul_acc(this.get_bak());
-                            });
-                            break;
-                        default:
-                            if (!r_number.test(next)) {
-                                throw new Error("Not a number: ", next);
-                            }
+                    {
+                        let next = lex.next();
+                        switch (next) {
+                            case 'acc':
+                                this.memory.push(function () {
+                                    this.mul_acc(this.get_acc());
+                                });
+                                break;
+                            case 'bak':
+                                this.memory.push(function () {
+                                    this.mul_acc(this.get_bak());
+                                });
+                                break;
+                            default:
+                                if (!r_number.test(next)) {
+                                    throw new Error("Not a number: ", next);
+                                }
 
-                            this.memory.push(function () {
-                                let number = parseInt(next);
-                                this.mul_acc(number);
-                            });
+                                this.memory.push(function () {
+                                    let number = parseInt(next);
+                                    this.mul_acc(number);
+                                });
+                        }
+                        break;
                     }
-                    break;
                 case 'div':
-                    let next = lex.next();
-                    switch (next) {
-                        case 'acc':
-                            this.memory.push(function () {
-                                this.div_acc(this.get_acc());
-                            });
-                            break;
-                        case 'bak':
-                            this.memory.push(function () {
-                                this.div_acc(this.get_bak());
-                            });
-                            break;
-                        default:
-                            if (!r_number.test(next)) {
-                                throw new Error("Not a number: ", next);
-                            }
+                    {
+                        let next = lex.next();
+                        switch (next) {
+                            case 'acc':
+                                this.memory.push(function () {
+                                    this.div_acc(this.get_acc());
+                                });
+                                break;
+                            case 'bak':
+                                this.memory.push(function () {
+                                    this.div_acc(this.get_bak());
+                                });
+                                break;
+                            default:
+                                if (!r_number.test(next)) {
+                                    throw new Error("Not a number: ", next);
+                                }
 
-                            this.memory.push(function () {
-                                let number = parseInt(next);
-                                this.div_acc(number);
-                            });
+                                this.memory.push(function () {
+                                    let number = parseInt(next);
+                                    this.div_acc(number);
+                                });
+                        }
+                        break;
                     }
-                    break;
                 case 'mod':
+                    {
+                        let next = lex.next();
+                        switch (next) {
+                            case 'acc':
+                                this.memory.push(function () {
+                                    this.mod_acc(this.get_acc());
+                                });
+                                break;
+                            case 'bak':
+                                this.memory.push(function () {
+                                    this.mod_acc(this.get_bak());
+                                });
+                                break;
+                            default:
+                                if (!r_number.test(next)) {
+                                    throw new Error("Not a number: ", next);
+                                }
 
-                    let next = lex.next();
-                    switch (next) {
-                        case 'acc':
-                            this.memory.push(function () {
-                                this.mod_acc(this.get_acc());
-                            });
-                            break;
-                        case 'bak':
-                            this.memory.push(function () {
-                                this.mod_acc(this.get_bak());
-                            });
-                            break;
-                        default:
-                            if (!r_number.test(next)) {
-                                throw new Error("Not a number: ", next);
-                            }
-
-                            this.memory.push(function () {
-                                let number = parseInt(next);
-                                this.mod_acc(number);
-                            });
+                                this.memory.push(function () {
+                                    let number = parseInt(next);
+                                    this.mod_acc(number);
+                                });
+                        }
+                        break;
                     }
-                    break;
                 case 'swp':
                     this.memory.push(function () {
                         let acc = this.get_acc();
@@ -547,7 +571,7 @@ var cpu = {
                 default:
                     // handle labels
                     if (!r_label_def.test(symbol)) {
-                        throw new Error("Illegal Symbol: ", symbol);
+                        throw new Error("Illegal Symbol: ", symbol, "here");
                     }
 
                     let label = symbol.replace(":", "");
