@@ -1,6 +1,7 @@
 var init_logic = function () {
     let ta = document.getElementsByTagName("textarea")[0];
-    let btn = document.getElementById("adv");
+    let btn_advance = document.getElementById("adv");
+    let btn_reset = document.getElementById("rst");
     let line = 0;
     let start = 0;
     let num_lines = 0;
@@ -9,7 +10,7 @@ var init_logic = function () {
     let l_acc = document.getElementById('label_acc');
     let l_bak = document.getElementById('label_bak');
     let l_tst = document.getElementById('label_tst');
-
+    let l_stat = document.getElementById('status');
     let stack = {
         'data': new Array(),
         'index': 0,
@@ -28,9 +29,17 @@ var init_logic = function () {
         }
     };
 
+
     ta.onblur = function () {
+        console.log("reset and compile");
+        cpu.reset();
         cpu.compile(ta.value);
     }
+
+    // error handling
+    window.onerror = function (e) {
+        l_stat.innerHTML = "<div style='color: #ff0000'>" + e + "</b>";
+    };
 
 
     let step = function () {
@@ -47,7 +56,7 @@ var init_logic = function () {
             ta.selectionEnd = start + values[line].length + 1;
         }
 
-        // execute step
+        // update positions
         start += values[line].length + 1;
         line = line + 1;
 
@@ -55,7 +64,7 @@ var init_logic = function () {
             line = 0;
             start = 0;
         }
-        //debugger;
+
         let empty = /^[\s]*$/g;
         if (empty.test(values[line])) {
             // skip this line
@@ -63,10 +72,22 @@ var init_logic = function () {
             line = line + 1;
         }
 
+        // execute step
+        // prototype. this will imply line mismatches
+        cpu.execute();
+
+        l_acc.innerText = cpu.get_acc();
+        l_bak.innerText = cpu.get_bak();
+        l_tst.innerText = cpu.get_tst();
+
+
     };
 
-    btn.onclick = step;
-
+    // configure buttons
+    btn_advance.onclick = step;
+    btn_reset.onclick = (function () {
+        cpu.reset_all();
+    })();
 
     // test automatic playbacl
     // setInterval(step, 200);
@@ -123,25 +144,25 @@ var cpu = {
     'labels': [],
     'memory': [],
     'set_acc': function (v) {
-        this.acc = v;
+        this.registers.acc = v;
     },
     'add_acc': function (v) {
         if (v > 10000 || v < -10000) {
             throw new Error("Value out of range");
         }
-        this.acc += v;
+        this.registers.acc += v;
     },
     'sub_acc': function (v) {
         if (v > 10000 || v < -10000) {
             throw new Error("Value out of range");
         }
-        this.acc -= v;
+        this.registers.acc -= v;
     },
     'mul_acc': function (v) {
         if (v > 100 || v < -100) {
             throw new Error("Value out of range");
         }
-        this.acc *= v;
+        this.registers.acc *= v;
     },
     'div_acc': function (v) {
         if (v == 0) {
@@ -152,66 +173,71 @@ var cpu = {
             throw new Error("Value out of range");
         }
 
-        this.acc /= v;
+        this.registers.acc /= v;
     },
     'mod_acc': function (v) {
         if (v < 1) {
             throw new Error("Can't divide by zero");
         }
 
-        this.acc %= v;
+        this.registers.acc %= v;
     },
     'get_acc': function (v) {
-        return this.acc;
+        return this.registers.acc;
     },
     'set_bak': function (v) {
-        this.bak = v;
+        this.registers.bak = v;
     },
     'get_bak': function (v) {
-        return this.bak;
+        return this.registers.bak;
     },
     'set_tst': function (v) {
-        this.tst = v;
+        this.registers.tst = v;
     },
     'get_tst': function () {
-        return this.tst;
+        return this.registers.tst;
     },
     'is_tst_zero': function () {
-        return this.tst == 0;
+        return this.registers.tst == 0;
     },
     'is_tst_gtz': function () {
-        return this.tst > 0;
+        return this.registers.tst > 0;
     },
     'is_tst_ltz': function () {
-        return this.tst < 0;
+        return this.registers.tst < 0;
     },
     'set_pc': function (p) {
-        this.pc = p;
+        this.registers.pc = p;
     },
     'get_pc': function () {
-        return this.pc;
+        return this.registers.pc;
     },
     'inc_pc': function () {
-        this.pc += 1;
+        this.registers.pc += 1;
+
+        //  This resets the pc
+        if (this.registers.pc == this.memory.length) {
+            this.registers.pc = 0;
+        }
     },
     'dec_pc': function () {
-        if (this.pc == 0) {
+        if (this.registers.pc == 0) {
             return;
         }
 
-        this.pc -= 1;
+        this.registers.pc -= 1;
     },
     'push_stack': function (v) {
-        if (this.sp == 0) {
+        if (this.registers.sp == 0) {
             throw new Error("Stack overflow");
         }
-        this.stack[this.sp--] = v;
+        this.registers.stack[this.registers.sp--] = v;
     },
     'pop_stack': function () {
-        if (this.sp == 32) {
+        if (this.registers.sp == 32) {
             return null;
         }
-        return this.stack[this.sp++];
+        return this.registers.stack[this.sp++];
     },
 
     'registers': {
@@ -222,6 +248,21 @@ var cpu = {
         'pc': 0,
         'stack': [],
         'sp': 32
+    },
+    'reset': function () {
+        this.memory = [];
+        this.labels = [];
+    },
+    'reset_all': function () {
+        this.memory = [];
+        this.labels = [];
+        this.registers.acc = 0;
+        this.registers.bak = 0;
+        this.registers.tst = 0;
+    },
+    'execute': function () {
+        this.memory[this.get_pc()](this);
+        this.inc_pc();
     },
 
     // this function 'compiles' the given code into
@@ -236,14 +277,14 @@ var cpu = {
     'compile': function (cc) {
 
         // matchers
-        let r_label_def = /^[a-z]+\:$/g;
-        let r_label = /^[a-z]+$/g;
-        let r_number = /[0-9]+/g;
+
+
+
 
         // clean up non-tokens
         let code = cc
             .replace(/\n/g, " ")
-            .replace(",", " ")
+            .replace(/\,/g, " ")
             .split(" ")
             .map(function (v) {
                 return v.toLowerCase();
@@ -252,7 +293,7 @@ var cpu = {
                 return v.length != 0;
             });
 
-        //debugger;
+        // debugger;
 
         // the 'lexer' stores all tokens
         // and returns the next
@@ -261,7 +302,6 @@ var cpu = {
             'length': code.length,
             'stream': code,
             'next': function () {
-                console.log("pos=", this.pos, ", length=", this.length);
                 if (this.pos == this.length) {
                     // this.pos = 0;
                     throw new Error("End Of Stream");
@@ -274,31 +314,32 @@ var cpu = {
             }
         };
 
-        // debugger;
+
 
         while (lex.has_next()) {
             let symbol = lex.next();
             switch (symbol) {
                 case 'mov':
                     let target = lex.next();
+                    console.log("target=", target);
                     switch (target) {
                         case 'acc':  // mov instruction
                             {
                                 let source = lex.next();
                                 switch (source) {
                                     case 'bak':
-                                        this.memory.push(function () {
-                                            this.set_acc(this.get_bak());
+                                        this.memory.push(function (a) {
+                                            a.set_acc(a.get_bak());
                                         });
                                         break;
                                     case 'acc':
-                                        this.memory.push(function () {
-                                            this.set_acc(this.get_acc());
+                                        this.memory.push(function (a) {
+                                            a.set_acc(a.get_acc());
                                         })
                                         break;
                                     case 'tst':
-                                        this.memory.push(function () {
-                                            this.set_acc(this.get_tst());
+                                        this.memory.push(function (a) {
+                                            a.set_acc(a.get_tst());
                                         })
                                         break;
                                     default:
@@ -307,8 +348,8 @@ var cpu = {
                                             throw new Error("Not a number: ", source, "__");
                                         }
 
-                                        this.memory.push(function () {
-                                            this.set_acc(parseInt(source));
+                                        this.memory.push(function (a) {
+                                            a.set_acc(parseInt(source));
                                         })
                                 }
                                 break;
@@ -318,18 +359,18 @@ var cpu = {
                                 let source = lex.next();
                                 switch (source) {
                                     case 'bak':
-                                        this.memory.push(function () {
-                                            this.set_tst(this.get_bak());
+                                        this.memory.push(function (a) {
+                                            a.set_tst(a.get_bak());
                                         });
                                         break;
                                     case 'acc':
-                                        this.memory.push(function () {
-                                            this.set_tst(this.get_acc());
+                                        this.memory.push(function (a) {
+                                            a.set_tst(a.get_acc());
                                         })
                                         break;
                                     case 'tst':
-                                        this.memory.push(function () {
-                                            this.set_tst(this.get_tst());
+                                        this.memory.push(function (a) {
+                                            a.set_tst(a.get_tst());
                                         })
                                         break;
                                     default:
@@ -338,13 +379,14 @@ var cpu = {
                                             throw new Error("Not a number");
                                         }
 
-                                        this.memory.push(function () {
-                                            this.set_tst(parseInt(source));
+                                        this.memory.push(function (a) {
+                                            a.set_tst(parseInt(source));
                                         })
                                 }
                                 break;
                             }
                         default:
+                            // debugger;
                             throw new Error("Illegal Target Register: ", target);
                     }
                     break;
@@ -352,21 +394,23 @@ var cpu = {
 
                     {
                         let label = lex.next();
+                        let r_label = /^[a-z]+$/g;
                         if (!r_label.test(label)) {
                             throw new Error("Illegal label defintion: ", label);
                         }
-                        this.memory.push(function () {
+                        this.memory.push(function (a) {
                             // can this break ?
-                            if (this.labels[label] == null) {
+                            if (a.labels[label] == null) {
                                 throw new Error("Label not found: ", label);
                             }
-                            this.pc = this.labels[label];
+                            a.registers.pc = a.labels[label];
                         });
                         break;
                     }
                 case 'jeq':
                     {
                         let label = lex.next();
+                        let r_label = /^[a-z]+$/g;
                         if (!r_label.test(label)) {
                             throw new Error("Illegal label defintion: ", label);
                         }
@@ -380,12 +424,13 @@ var cpu = {
                 case 'jne':
                     {
                         let label = lex.next();
+                        let r_label = /^[a-z]+$/g;
                         if (!r_label.test(label)) {
                             throw new Error("Illegal label defintion: ", label);
                         }
 
                         if (this.get_tst() != 0) {
-                            this.pc = this.labels[label];
+                            this.registers.pc = this.labels[label];
                         }
 
                         break;
@@ -393,36 +438,41 @@ var cpu = {
                 case 'jez': // duplicate?
                     {
                         let label = lex.next();
+                        let r_label = /^[a-z]+$/g;
                         if (!r_label.test(label)) {
                             throw new Error("Illegal label defintion: ", label);
                         }
 
                         if (this.get_tst() == 0) {
-                            this.pc = this.labels[label];
+                            this.registers.pc = this.labels[label];
                         }
                         break;
                     }
                 case 'jgz':
+                    // debugger;
                     {
+
                         let label = lex.next();
+                        let r_label = /^[a-z]+$/g;
                         if (!r_label.test(label)) {
                             throw new Error("Illegal label defintion: ", label);
                         }
 
                         if (this.get_tst() > 0) {
-                            this.pc = this.labels[label];
+                            this.registers.pc = this.labels[label];
                         }
                         break;
                     }
                 case 'jlz':
                     {
                         let label = lex.next();
+                        let r_label = /^[a-z]+$/g;
                         if (!r_label.test(label)) {
                             throw new Error("Illegal label defintion: ", label);
                         }
 
                         if (this.get_tst() < 0) {
-                            this.pc = this.labels[label];
+                            this.registers.pc = this.labels[label];
                         }
                         break;
                     }
@@ -431,23 +481,27 @@ var cpu = {
                         let next = lex.next();
                         switch (next) {
                             case 'acc':
-                                this.memory.push(function () {
-                                    this.add_acc(this.get_acc());
+                                this.memory.push(function (a) {
+                                    a.add_acc(a.get_acc());
                                 });
                                 break;
                             case 'bak':
-                                this.memory.push(function () {
-                                    this.add_acc(this.get_bak());
+                                this.memory.push(function (a) {
+                                    a.add_acc(a.get_bak());
                                 });
                                 break;
                             default:
+                                // debugger;
+
+
+                                let r_number = /^[0-9]+$/g;
                                 if (!r_number.test(next)) {
                                     throw new Error("Not a number: ", next);
                                 }
 
-                                this.memory.push(function () {
+                                this.memory.push(function (a) {
                                     let number = parseInt(next);
-                                    this.add_acc(number);
+                                    a.add_acc(number);
                                 });
                         }
                         break;
@@ -457,23 +511,24 @@ var cpu = {
                         let next = lex.next();
                         switch (next) {
                             case 'acc':
-                                this.memory.push(function () {
-                                    this.sub_acc(this.get_acc());
+                                this.memory.push(function (a) {
+                                    a.sub_acc(a.get_acc());
                                 });
                                 break;
                             case 'bak':
-                                this.memory.push(function () {
-                                    this.sub_acc(this.get_bak());
+                                this.memory.push(function (a) {
+                                    a.sub_acc(a.get_bak());
                                 });
                                 break;
                             default:
+                                let r_number = /^[0-9]+$/g;
                                 if (!r_number.test(next)) {
                                     throw new Error("Not a number: ", next);
                                 }
 
-                                this.memory.push(function () {
+                                this.memory.push(function (a) {
                                     let number = parseInt(next);
-                                    this.sub_acc(number);
+                                    a.sub_acc(number);
                                 });
                         }
                         break;
@@ -483,23 +538,24 @@ var cpu = {
                         let next = lex.next();
                         switch (next) {
                             case 'acc':
-                                this.memory.push(function () {
-                                    this.mul_acc(this.get_acc());
+                                this.memory.push(function (a) {
+                                    a.mul_acc(a.get_acc());
                                 });
                                 break;
                             case 'bak':
-                                this.memory.push(function () {
-                                    this.mul_acc(this.get_bak());
+                                this.memory.push(function (a) {
+                                    a.mul_acc(a.get_bak());
                                 });
                                 break;
                             default:
+                                let r_number = /^[0-9]+$/g;
                                 if (!r_number.test(next)) {
                                     throw new Error("Not a number: ", next);
                                 }
 
-                                this.memory.push(function () {
+                                this.memory.push(function (a) {
                                     let number = parseInt(next);
-                                    this.mul_acc(number);
+                                    a.mul_acc(number);
                                 });
                         }
                         break;
@@ -509,23 +565,24 @@ var cpu = {
                         let next = lex.next();
                         switch (next) {
                             case 'acc':
-                                this.memory.push(function () {
-                                    this.div_acc(this.get_acc());
+                                this.memory.push(function (a) {
+                                    a.div_acc(a.get_acc());
                                 });
                                 break;
                             case 'bak':
-                                this.memory.push(function () {
-                                    this.div_acc(this.get_bak());
+                                this.memory.push(function (a) {
+                                    a.div_acc(a.get_bak());
                                 });
                                 break;
                             default:
+                                let r_number = /^[0-9]+$/g;
                                 if (!r_number.test(next)) {
                                     throw new Error("Not a number: ", next);
                                 }
 
-                                this.memory.push(function () {
+                                this.memory.push(function (a) {
                                     let number = parseInt(next);
-                                    this.div_acc(number);
+                                    a.div_acc(number);
                                 });
                         }
                         break;
@@ -535,13 +592,13 @@ var cpu = {
                         let next = lex.next();
                         switch (next) {
                             case 'acc':
-                                this.memory.push(function () {
-                                    this.mod_acc(this.get_acc());
+                                this.memory.push(function (a) {
+                                    a.mod_acc(a.get_acc());
                                 });
                                 break;
                             case 'bak':
-                                this.memory.push(function () {
-                                    this.mod_acc(this.get_bak());
+                                this.memory.push(function (a) {
+                                    a.mod_acc(a.get_bak());
                                 });
                                 break;
                             default:
@@ -549,28 +606,28 @@ var cpu = {
                                     throw new Error("Not a number: ", next);
                                 }
 
-                                this.memory.push(function () {
+                                this.memory.push(function (a) {
                                     let number = parseInt(next);
-                                    this.mod_acc(number);
+                                    a.mod_acc(number);
                                 });
                         }
                         break;
                     }
                 case 'swp':
-                    this.memory.push(function () {
-                        let acc = this.get_acc();
-                        this.set_acc(this.get_bak);
-                        this.set_bak(acc);
+                    this.memory.push(function (a) {
+                        let acc = a.get_acc();
+                        a.set_acc(a.get_bak());
+                        a.set_bak(acc);
                     })
                     break;
                 case 'psh':
-                    this.memory.push(function () {
-                        this.push_stack(this.get_acc());
+                    this.memory.push(function (a) {
+                        a.push_stack(a.get_acc());
                     })
                     break;
                 case 'pop':
-                    this.memory.push(function () {
-                        this.set_acc(this.pop_stack());
+                    this.memory.push(function (a) {
+                        a.set_acc(a.pop_stack());
                     })
                     break;
                 case 'nop':
@@ -578,19 +635,22 @@ var cpu = {
                     break;
 
                 default:
+                    // debugger;
                     // handle labels
+                    let r_label_def = /^[a-z]+\:$/g;
                     if (!r_label_def.test(symbol)) {
                         throw new Error("Illegal Symbol: ", symbol, "here");
                     }
 
                     let label = symbol.replace(":", "");
-                    this.labels[label] = this.pc; // TODO is this correct?
+                    this.labels[label] = this.registers.pc; // TODO is this correct?
 
             }
         } // end parsing
 
-        debugger;
+        // debugger;
     }
-}
+} // end cpu def
+
 
 

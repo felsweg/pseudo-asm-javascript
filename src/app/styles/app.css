@@ -17,9 +17,9 @@ html, body {
   textarea {
     background: transparent;
     color: #CABA00;
-    overflow: hidden;
+    overflow: visible;
     border: 1px solid #CCCC00;
-    resize: none;
+    resize: vertical;
     font-weight: bold;
     text-transform: uppercase;
     font-size: 1.0em;
@@ -46,7 +46,7 @@ html, body {
   /** grid stuff */
 .vmeditor {
     grid-column: 1;
-    grid-row: 1/4;
+    grid-row: 1/5;
     width: 200px;
 }
 
@@ -65,12 +65,17 @@ html, body {
   grid-row: 3;
 }
 
+.status_label {
+  grid-column: 2;
+  grid-row: 4;
+}
+
 .control_step {
   grid-column: 1;
-  grid-row: 4;
+  grid-row: 5;
 }
 
 .control_play {
   grid-column: 2;
-  grid-row: 4;
+  grid-row: 5;
 }
