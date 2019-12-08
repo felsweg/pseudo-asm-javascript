@@ -11,25 +11,26 @@ __abbreviations__
 * Number (N)
 
 
-| OpCode            | Description                    |
-|:------------------|:-------------------------------|
-| jmp      <label>  | unconditional jump             |
-| jeq      <label>  | jump, if FLG register == 0     |
-| jne      <label>  | jump, if FLG register != 0     |
-| jez      <label>  | jump, if FLG register == 0 (?) |
-| jgz      <label>  | jump, if FLG register > 0      |
-| jlz      <label>  | jump, if FLG register < 0      |
-| add      R / N    |                                |
-| sub      R / N    |                                |
-| div      R / N    |                                |
-| mul      R / N    |                                |
-| mod      R / N    |                                |
-| mov      R, R / N |                                |
-| swp      <none>   | swaps acc and bak              |
-| psh      <none>   | push a value to the stack      |
-| pop      <none>   | pops a value from the stack    |
-| nop               | no operation                   |
-| swp     R / N     | swp acc with bak               |
+| OpCode            | Description                                            |
+|:------------------|:-------------------------------------------------------|
+| jmp      <label>  | unconditional jump                                     |
+| jeq      <label>  | jump, if FLG register == 0                             |
+| jne      <label>  | jump, if FLG register != 0                             |
+| jez      <label>  | jump, if FLG register == 0 (?)                         |
+| jgz      <label>  | jump, if FLG register > 0                              |
+| jlz      <label>  | jump, if FLG register < 0                              |
+| add      R / N    |                                                        |
+| sub      R / N    |                                                        |
+| div      R / N    |                                                        |
+| mul      R / N    |                                                        |
+| mod      R / N    |                                                        |
+| mov      R, R / N |                                                        |
+| tst   R, R/N      | tests, if target and source are the same. modifies FLG |
+| swp      <none>   | swaps acc and bak                                      |
+| psh      <none>   | push a value to the stack                              |
+| pop      <none>   | pops a value from the stack                            |
+| nop               | no operation                                           |
+| swp     R / N     | swp acc with bak                                       |
 
 
 ## Future Opcodes (not implemented yet)

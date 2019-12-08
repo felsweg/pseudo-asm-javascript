@@ -11,6 +11,7 @@ var init_logic = function () {
     let l_bak = document.getElementById('label_bak');
     let l_tst = document.getElementById('label_tst');
     let l_stat = document.getElementById('status');
+
     let stack = {
         'data': new Array(),
         'index': 0,
@@ -31,19 +32,19 @@ var init_logic = function () {
 
 
     ta.onblur = function () {
-        console.log("reset and compile");
-        cpu.reset();
-        cpu.compile(ta.value);
+        // console.log("reset and compile");
+        // cpu.reset();
+        // cpu.compile(ta.value);
     }
 
     // error handling
     window.onerror = function (e) {
-        l_stat.innerHTML = "<div style='color: #ff0000'>" + e + "</b>";
+        l_stat.innerHTML = "<div style='color: #ff0000'>" + e + "</div>";
     };
 
 
     let step = function () {
-        fill_empty_space(ta);
+        //fill_empty_space(ta);
 
         let values = ta.value.split("\n");
         num_lines = values.length;
@@ -72,22 +73,39 @@ var init_logic = function () {
             line = line + 1;
         }
 
+        let label_tst = new RegExp("^[a-z]+\:$");
+        if (label_tst.test(values[line])) {
+            start += values[line].length + 1;
+            line = line + 1;
+        }
+
+
+
+
+    };
+
+    // configure buttons
+    btn_advance.onclick = function () {
+        step();
+
         // execute step
         // prototype. this will imply line mismatches
         cpu.execute();
 
         l_acc.innerText = cpu.get_acc();
         l_bak.innerText = cpu.get_bak();
-        l_tst.innerText = cpu.get_tst();
-
-
+        l_tst.innerText = cpu.get_flg();
     };
 
-    // configure buttons
-    btn_advance.onclick = step;
-    btn_reset.onclick = (function () {
-        cpu.reset_all();
-    })();
+    btn_reset.onclick = function () {
+        line = 0;
+        start = 0;
+
+        //debugger;
+        console.log("compiling");
+        cpu.reset();
+        cpu.compile(ta.value);
+    };
 
     // test automatic playbacl
     // setInterval(step, 200);
@@ -116,22 +134,22 @@ function fill_empty_space(e) {
 
 // TODO: is this bogus?
 // inverse operation for fill_empty_space
-function remove_empty_space(e) {
-    let split = e.value.split("\n");
-    let text = "";
+// function remove_empty_space(e) {
+//     let split = e.value.split("\n");
+//     let text = "";
 
-    for (i = 0; i < split.length; i++) {
-        let line = split[i].trim();
+//     for (i = 0; i < split.length; i++) {
+//         let line = split[i].trim();
 
-        if (i == split.length - 1) {
-            text += line;
-        } else {
-            text += line + "\n";
-        }
-    }
+//         if (i == split.length - 1) {
+//             text += line;
+//         } else {
+//             text += line + "\n";
+//         }
+//     }
 
-    e.value = text;
-}
+//     e.value = text;
+// }
 
 // clamp values below 0 to 0
 function clamp(x) {
@@ -191,22 +209,23 @@ var cpu = {
     'get_bak': function (v) {
         return this.registers.bak;
     },
-    'set_tst': function (v) {
-        this.registers.tst = v;
+    'set_flg': function (v) {
+        this.registers.flg = v;
     },
-    'get_tst': function () {
-        return this.registers.tst;
+    'get_flg': function () {
+        return this.registers.flg;
     },
     'is_tst_zero': function () {
-        return this.registers.tst == 0;
+        return this.registers.flg == 0;
     },
     'is_tst_gtz': function () {
-        return this.registers.tst > 0;
+        return this.registers.flg > 0;
     },
     'is_tst_ltz': function () {
-        return this.registers.tst < 0;
+        return this.registers.flg < 0;
     },
     'set_pc': function (p) {
+        console.log("set pc to=", p);
         this.registers.pc = p;
     },
     'get_pc': function () {
@@ -243,7 +262,7 @@ var cpu = {
     'registers': {
         'acc': 0,
         'bak': 0,
-        'tst': 0,
+        'flg': 0,
         'bak': 0,
         'pc': 0,
         'stack': [],
@@ -258,9 +277,11 @@ var cpu = {
         this.labels = [];
         this.registers.acc = 0;
         this.registers.bak = 0;
-        this.registers.tst = 0;
+        this.registers.flg = 0;
     },
     'execute': function () {
+        // debugger;
+        console.log("pc=", this.get_pc());
         this.memory[this.get_pc()](this);
         this.inc_pc();
     },
@@ -315,8 +336,37 @@ var cpu = {
         };
 
 
+        // define a label stack to store the last defined
+        // label. the next successfully parsed instruction 
+        // is the pc's target. in case multiple labels are
+        // being defined in succession, the first instruction
+        // location will become the address of all preceeding 
+        // labels. 
+        let label_stack = [];
+        let seen_label = 0;
 
         while (lex.has_next()) {
+            console.log("label['end']=", this.labels['end']);
+
+            // check, if the last instruction was not a label
+            if (seen_label == 0) {
+
+                // since, we're only looking at the last instruction,
+                // we can assume it is the last entry.
+                let index = this.memory.length - 1;
+
+                while (label_stack.length != 0) {
+                    let _label = label_stack.pop();
+                    console.log("set index=", index, "for label=", _label);
+                    this.labels[_label] = index;
+                }
+            }
+
+            seen_label -= 1;
+            if (seen_label < 0) {
+                seen_label = 0;
+            }
+
             let symbol = lex.next();
             switch (symbol) {
                 case 'mov':
@@ -337,9 +387,9 @@ var cpu = {
                                             a.set_acc(a.get_acc());
                                         })
                                         break;
-                                    case 'tst':
+                                    case 'flg':
                                         this.memory.push(function (a) {
-                                            a.set_acc(a.get_tst());
+                                            a.set_acc(a.get_flg());
                                         })
                                         break;
                                     default:
@@ -354,23 +404,23 @@ var cpu = {
                                 }
                                 break;
                             }
-                        case 'tst': // mov instruction
+                        case 'flg': // mov instruction
                             {
                                 let source = lex.next();
                                 switch (source) {
                                     case 'bak':
                                         this.memory.push(function (a) {
-                                            a.set_tst(a.get_bak());
+                                            a.set_flg(a.get_bak());
                                         });
                                         break;
                                     case 'acc':
                                         this.memory.push(function (a) {
-                                            a.set_tst(a.get_acc());
+                                            a.set_flg(a.get_acc());
                                         })
                                         break;
-                                    case 'tst':
+                                    case 'flg':
                                         this.memory.push(function (a) {
-                                            a.set_tst(a.get_tst());
+                                            a.set_flg(a.get_flg());
                                         })
                                         break;
                                     default:
@@ -380,14 +430,201 @@ var cpu = {
                                         }
 
                                         this.memory.push(function (a) {
-                                            a.set_tst(parseInt(source));
+                                            a.set_flg(parseInt(source));
                                         })
                                 }
                                 break;
                             }
+                        // bak is disallowed as target
                         default:
                             // debugger;
                             throw new Error("Illegal Target Register: ", target);
+                    }
+                    break;
+                case 'cmp':
+                    {
+                        let target = lex.next();
+
+                        switch (target) {
+                            case 'acc':
+                                {
+                                    let source = lex.next();
+                                    switch (source) {
+                                        case 'acc':
+                                            this.memory.push(function (a) {
+                                                a.set_flg(0);
+                                            });
+                                            break;
+                                        case 'bak':
+                                            this.memory.push(function (a) {
+                                                if (a.get_acc() > a.get_bak()) {
+                                                    this.set_flg(1);
+                                                }
+                                                else if (a.get_acc() < a.get_bak()) {
+                                                    this.set_flg(-1);
+                                                }
+                                                else {
+                                                    this.set_flg(0);
+                                                }
+                                            });
+                                            break;
+                                        case 'flg':
+                                            this.memory.push(function (a) {
+                                                if (a.get_acc() > a.get_flg()) {
+                                                    a.set_flg(1);
+                                                }
+                                                else if (a.get_acc() < a.get_flg()) {
+                                                    a.set_flg(-1);
+                                                }
+                                                else {
+                                                    a.set_flg(0);
+                                                }
+                                            });
+                                            break;
+                                        default:
+                                            // debugger;
+                                            let r_number = new RegExp("^[0-9]+$");
+                                            if (!r_number.test(source)) {
+                                                throw new Error("Not a number");
+                                            }
+
+                                            this.memory.push(function (a) {
+                                                let number = parseInt(source);
+
+                                                if (a.get_acc() > number) {
+                                                    a.set_flg(1);
+                                                }
+                                                else if (a.get_acc() < number) {
+                                                    a.set_flg(-1);
+                                                }
+                                                else {
+                                                    a.set_flg(0);
+                                                }
+
+                                            })
+                                            break;
+                                    }
+                                }
+                                break;
+                            case 'bak':
+                                {
+                                    let source = lex.next();
+                                    switch (source) {
+                                        case 'bak':
+                                            this.memory.push(function (a) {
+                                                a.set_flg(0);
+                                            });
+                                            break;
+                                        case 'acc':
+                                            this.memory.push(function (a) {
+                                                if (a.get_bak() > a.get_acc()) {
+                                                    this.set_flg(1);
+                                                }
+                                                else if (a.get_bak() < a.get_acc()) {
+                                                    this.set_flg(-1);
+                                                }
+                                                else {
+                                                    this.set_flg(0);
+                                                }
+                                            });
+                                            break;
+                                        case 'flg':
+                                            this.memory.push(function (a) {
+                                                if (a.get_bak() > a.get_flg()) {
+                                                    a.set_flg(1);
+                                                }
+                                                else if (a.get_bak() < a.get_flg()) {
+                                                    a.set_flg(-1);
+                                                }
+                                                else {
+                                                    a.set_flg(0);
+                                                }
+                                            });
+                                            break;
+                                        default:
+                                            if (r_number.test(source)) {
+                                                throw new Error("Not a number");
+                                            }
+
+                                            this.memory.push(function (a) {
+                                                let number = parseInt(source);
+
+                                                if (a.get_bak() > number) {
+                                                    a.set_flg(1);
+                                                }
+                                                else if (a.get_bak() < number) {
+                                                    a.set_flg(-1);
+                                                }
+                                                else {
+                                                    a.set_flg(0);
+                                                }
+
+                                            })
+                                            break;
+                                    }
+                                }
+                                break;
+                            case 'flg':
+                                {
+                                    let source = lex.next();
+                                    switch (source) {
+                                        case 'flg':
+                                            this.memory.push(function (a) {
+                                                a.set_flg(0);
+                                            });
+                                            break;
+                                        case 'bak':
+                                            this.memory.push(function (a) {
+                                                if (a.get_flg() > a.get_bak()) {
+                                                    this.set_flg(1);
+                                                }
+                                                else if (a.get_flg() < a.get_bak()) {
+                                                    this.set_flg(-1);
+                                                }
+                                                else {
+                                                    this.set_flg(0);
+                                                }
+                                            });
+                                            break;
+                                        case 'acc':
+                                            this.memory.push(function (a) {
+                                                if (a.get_flg() > a.get_flg()) {
+                                                    a.set_flg(1);
+                                                }
+                                                else if (a.get_flg() < a.get_flg()) {
+                                                    a.set_flg(-1);
+                                                }
+                                                else {
+                                                    a.set_flg(0);
+                                                }
+                                            });
+                                            break;
+                                        default:
+                                            if (r_number.test(source)) {
+                                                throw new Error("Not a number");
+                                            }
+
+                                            this.memory.push(function (a) {
+                                                let number = parseInt(source);
+
+                                                if (a.get_flg() > number) {
+                                                    a.set_flg(1);
+                                                }
+                                                else if (a.get_flg() < number) {
+                                                    a.set_flg(-1);
+                                                }
+                                                else {
+                                                    a.set_flg(0);
+                                                }
+
+                                            })
+                                            break;
+                                    }
+                                }
+                                break;
+                            default:
+                                throw new Error("Illegal Target Register: ", target);
+                        }
                     }
                     break;
                 case 'jmp':
@@ -403,7 +640,8 @@ var cpu = {
                             if (a.labels[label] == null) {
                                 throw new Error("Label not found: ", label);
                             }
-                            a.registers.pc = a.labels[label];
+                            console.log("jmp to =", a.labels[label], "for label=", label);
+                            a.set_pc(a.labels[label] - 1);
                         });
                         break;
                     }
@@ -414,10 +652,13 @@ var cpu = {
                         if (!r_label.test(label)) {
                             throw new Error("Illegal label defintion: ", label);
                         }
+                        this.memory.push(function (a) {
+                            // debugger;
+                            if (a.get_flg() == 0) {
+                                a.set_pc(a.labels[label] - 1);
+                            }
+                        });
 
-                        if (this.get_tst() == 0) {
-                            this.pc = this.labels[label];
-                        }
 
                         break;
                     }
@@ -429,9 +670,11 @@ var cpu = {
                             throw new Error("Illegal label defintion: ", label);
                         }
 
-                        if (this.get_tst() != 0) {
-                            this.registers.pc = this.labels[label];
-                        }
+                        this.memory.push(function (a) {
+                            if (a.get_flg() != 0) {
+                                a.set_pc(a.labels[label] - 1);
+                            }
+                        });
 
                         break;
                     }
@@ -443,9 +686,13 @@ var cpu = {
                             throw new Error("Illegal label defintion: ", label);
                         }
 
-                        if (this.get_tst() == 0) {
-                            this.registers.pc = this.labels[label];
-                        }
+                        this.memory.push(function (a) {
+                            if (a.get_flg() == 0) {
+                                // debugger;
+                                a.set_pc(a.labels[label] - 1);
+                            }
+                        });
+
                         break;
                     }
                 case 'jgz':
@@ -458,9 +705,12 @@ var cpu = {
                             throw new Error("Illegal label defintion: ", label);
                         }
 
-                        if (this.get_tst() > 0) {
-                            this.registers.pc = this.labels[label];
-                        }
+                        this.memory.push(function (a) {
+                            if (a.get_flg() > 0) {
+                                a.set_pc(a.labels[label] - 1);
+                            }
+                        });
+
                         break;
                     }
                 case 'jlz':
@@ -470,10 +720,12 @@ var cpu = {
                         if (!r_label.test(label)) {
                             throw new Error("Illegal label defintion: ", label);
                         }
+                        this.memory.push(function (a) {
+                            if (a.get_flg() < 0) {
+                                a.set_pc(a.labels[label] - 1);
+                            }
+                        });
 
-                        if (this.get_tst() < 0) {
-                            this.registers.pc = this.labels[label];
-                        }
                         break;
                     }
                 case 'add':
@@ -525,8 +777,9 @@ var cpu = {
                                 if (!r_number.test(next)) {
                                     throw new Error("Not a number: ", next);
                                 }
-
+                                console.log("sub ins.mem len=", this.memory.length + 1);
                                 this.memory.push(function (a) {
+                                    console.log("subtract");
                                     let number = parseInt(next);
                                     a.sub_acc(number);
                                 });
@@ -634,19 +887,51 @@ var cpu = {
                     this.inc_pc();
                     break;
 
+
                 default:
                     // debugger;
-                    // handle labels
-                    let r_label_def = /^[a-z]+\:$/g;
+
+                    let r_label_def = new RegExp("^[a-z]+\:$");
                     if (!r_label_def.test(symbol)) {
                         throw new Error("Illegal Symbol: ", symbol, "here");
                     }
 
+                    //this.memory.push(function (a) {
+                    //debugger;
                     let label = symbol.replace(":", "");
-                    this.labels[label] = this.registers.pc; // TODO is this correct?
+                    // a.labels[label] = a.get_pc();
+                    console.log("encountered label=", label);
+                    label_stack.push(label);
+                    seen_label += 1;
+
+
+
+                //});
+
 
             }
         } // end parsing
+
+        // clear labelstack
+        // check, if the last instruction was not a label
+        if (seen_label == 0) {
+
+            // since, we're only looking at the last instruction,
+            // we can assume it is the last entry.
+            let index = this.memory.length - 1;
+
+            while (label_stack.length != 0) {
+                let _label = label_stack.pop();
+                console.log("set index=", index, "for label=", _label);
+                this.labels[_label] = index;
+            }
+        }
+
+        seen_label -= 1;
+        if (seen_label < 0) {
+            seen_label = 0;
+        }
+
 
         // debugger;
     }

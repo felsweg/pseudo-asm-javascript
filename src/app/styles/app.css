@@ -21,7 +21,7 @@ html, body {
     border: 1px solid #CCCC00;
     resize: vertical;
     font-weight: bold;
-    text-transform: uppercase;
+    text-transform: lowercase;
     font-size: 1.0em;
     padding: 10px;
     column-count: 50;
