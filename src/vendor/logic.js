@@ -901,7 +901,7 @@ var cpu = {
                 default:
                     let r_label_def = new RegExp("^[a-z]+\:$");
                     if (!r_label_def.test(symbol)) {
-                        throw new Error("Illegal Symbol: ", symbol, "here");
+                        throw new Error("Illegal Symbol: " + symbol);
                     }
                     let label = symbol.replace(":", "");
                     label_stack.push(label);
