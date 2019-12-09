@@ -2,9 +2,10 @@ var init_logic = function () {
     let ta = document.getElementsByTagName("textarea")[0];
     let btn_advance = document.getElementById("adv");
     let btn_reset = document.getElementById("rst");
-    let line = 0;
-    let start = 0;
-    let num_lines = 0;
+    // let line = 0;
+    // let start = 0;
+
+    let code_changed = true;
 
     // display vars
     let l_acc = document.getElementById('label_acc');
@@ -30,137 +31,149 @@ var init_logic = function () {
         }
     };
 
-    ta.value = "mov acc, 10\n\
-main:\n\
-sub 1\n\
-cmp acc,0\n\
-jeq end\n\
-jmp main\n\
-\n\
-end:\n\
-swp"
+    //     ta.value = "mov acc, 0\n\
+    // main:\n\
+    // add 1\n\
+    // cmp acc,10\n\
+    // jeq end\n\
+    // jmp main\n\
+    // \n\
+    // end:\n\
+    // swp"
 
 
-    ta.onblur = function () {
-        // console.log("reset and compile");
-        // cpu.reset();
-        // cpu.compile(ta.value);
+    // ta.onblur = function () {
+    //     // console.log("reset and compile");
+    //     // cpu.reset();
+    //     // cpu.compile(ta.value);
+    // }
+
+    ta.onkeydown = function () {
+        console.log("code changed");
+        code_changed = true;
     }
 
-    // error handling
     window.onerror = function (e) {
         l_stat.innerHTML = "<div style='color: #ff0000'>" + e + "</div>";
     };
-    /// _________________________
 
     let line_positions = [];
 
-    let values = ta.value.split("\n");
-    num_lines = values.length;
+    let update_line_positions = function () {
+        // debugger;
+        ta.value = fill_empty_space(ta.value, ta.cols);
+        let values = ta.value.split("\n");
+        let line = 0;
+        let start = 0;
+        let num_lines = values.length;
 
-    while (line < (num_lines)) {
-        // ta.focus();
-        // ta.selectionStart = start;
-        // if (line == 0) {
-        //     ta.selectionEnd = start + values[line].length;
-        // } else {
-        //     ta.selectionEnd = start + values[line].length + 1;
-        // }
-        if (line == 0) {
-            line_positions.push({
-                'begin': start,
-                'end': start + values[line].length
-            })
-        } else {
+        line_positions = [];
+
+        let _end = 0;
+        while (line < num_lines) {
+
+            // skip labels
+            let label_tst = new RegExp("^[a-z]+\:.*$");
+            if (label_tst.test(values[line])) {
+                start += values[line].length + 1;
+                line = line + 1;
+                continue;
+            }
+
+            let empty = /^[\s]*$/g;
+            if (empty.test(values[line])) {
+                start += values[line].length + 1;
+                line = line + 1;
+                continue;
+            }
+
             line_positions.push({
                 'begin': start,
                 'end': start + values[line].length + 1
             })
-        }
 
-
-        // update positions
-        start += values[line].length + 1;
-        line = line + 1;
-
-
-
-        let empty = /^[\s]*$/g;
-        if (empty.test(values[line])) {
-            // skip this line
+            // update positions
             start += values[line].length + 1;
             line = line + 1;
-        }
 
-        let label_tst = new RegExp("^[a-z]+\:$");
-        if (label_tst.test(values[line])) {
-            // skip this line
-            start += values[line].length + 1;
-            line = line + 1;
-        }
+            // skip empty line
 
+
+
+        }
     }
-    /// _________________________
 
+    // update_line_positions();
 
-    let step = function () {
-
-
-        // debugger;
+    let highlight_step = function () {
+        console.log("pc=" + cpu.get_pc());
         let lp = line_positions[cpu.get_pc()];
-
         ta.focus();
         ta.selectionStart = lp.begin;
         ta.selectionEnd = lp.end;
-
-
-
-
     };
 
-    // configure buttons
-    btn_advance.onclick = function () {
+    // select first line. maybe this is just crap calling this here
+    // but it does it's job, so who cares.
+    // highlight_step();
 
+    // configure buttons
+    let advance = function () {
+        if (code_changed) {
+            cpu.reset_all();
+            cpu.compile(ta.value);
+
+            update_line_positions();
+
+            code_changed = false;
+            l_stat.innerHTML = "<div style='color: #00ae00'>OK</div>";
+        }
 
         if (cpu.memory.length == 0) {
             cpu.compile(ta.value);
         }
-
-        // execute step
-        // prototype. this will imply line mismatches
+        // execute instruction. increase pc afterwards.
         cpu.execute();
 
-        step();
+        // update step highlighting
+        highlight_step();
 
-        l_acc.innerText = cpu.get_acc();
-        l_bak.innerText = cpu.get_bak();
-        l_tst.innerText = cpu.get_flg();
+        l_acc.innerHTML = label_text(cpu.get_acc());
+        l_bak.innerHTML = label_text(cpu.get_bak());
+        l_tst.innerHTML = label_text(cpu.get_flg());
     };
 
     btn_reset.onclick = function () {
         line = 0;
         start = 0;
 
-        console.log("compiling");
-        cpu.reset();
-        cpu.compile(ta.value);
+        cpu.reset_all();
     };
 
+    btn_advance.onclick = advance;
+
     // test automatic playback
-    // setInterval(step, 200);
+    // setTimeout(function () {
+    //     setInterval(advance, 50);
+    // }, 10);
 
 };
+
+function label_text(text) {
+    return "<div class='display_info'>" + text + "</div>"
+}
 
 // fills the empty space with blank spaces
 // between instructions  to make the 
 // highlighting more pleasant ;)
-function fill_empty_space(e) {
-    let split = e.value.split("\n");
+function fill_empty_space(e, cols) {
+
+    let split = e.split("\n");
     let text = "";
 
     for (i = 0; i < split.length; i++) {
         let line = split[i];
-        let fill = clamp(e.cols - line.length);
+        let fill = clamp(cols - line.length);
         line += " ".repeat(fill);
         if (i == split.length - 1) {
             text += line;
@@ -168,7 +181,7 @@ function fill_empty_space(e) {
             text += line + "\n";
         }
     }
-    e.value = text;
+    return text;
 }
 
 // clamp values below 0 to 0
@@ -296,6 +309,7 @@ var cpu = {
         this.registers.acc = 0;
         this.registers.bak = 0;
         this.registers.flg = 0;
+        this.registers.pc = 0;
     },
     'execute': function () {
         this.memory[this.get_pc()](this);
@@ -364,11 +378,12 @@ var cpu = {
 
                 while (label_stack.length != 0) {
                     let _label = label_stack.pop();
-                    this.labels[_label] = index;
+                    console.log("put label=", _label, "at=", index);
+                    this.labels[_label] = index; //index == 0 ? 1 : index;
                 }
             }
 
-            seen_label -= 1;
+            seen_label = seen_label - 1;
             if (seen_label < 0) {
                 seen_label = 0;
             }
@@ -625,7 +640,7 @@ var cpu = {
                                 }
                                 break;
                             default:
-                                throw new Error("Illegal Target Register: ", target);
+                                throw new Error("Illegal Target Register: " + target);
                         }
                     }
                     break;
@@ -635,11 +650,12 @@ var cpu = {
                         let label = lex.next();
                         let r_label = /^[a-z]+$/g;
                         if (!r_label.test(label)) {
-                            throw new Error("Illegal label defintion: ", label);
+                            throw new Error("Illegal label defintion: " + label);
                         }
                         this.memory.push(function (a) {
-                            if (a.labels[label] == null) {
-                                throw new Error("Label not found: ", label);
+                            let llabel = label;
+                            if (a.labels[llabel] == null) {
+                                throw new Error("Label not found: " + llabel);
                             }
                             a.set_pc(a.labels[label] - 1);
                         });
@@ -650,7 +666,7 @@ var cpu = {
                         let label = lex.next();
                         let r_label = /^[a-z]+$/g;
                         if (!r_label.test(label)) {
-                            throw new Error("Illegal label defintion: ", label);
+                            throw new Error("Illegal label defintion: " + label);
                         }
                         this.memory.push(function (a) {
                             if (a.get_flg() == 0) {
@@ -767,11 +783,12 @@ var cpu = {
                                 });
                                 break;
                             default:
-                                let r_number = /^[0-9]+$/g;
+                                let r_number = new RegExp("^[0-9]+$");
                                 if (!r_number.test(next)) {
                                     throw new Error("Not a number: ", next);
                                 }
                                 this.memory.push(function (a) {
+
                                     let number = parseInt(next);
                                     a.sub_acc(number);
                                 });
