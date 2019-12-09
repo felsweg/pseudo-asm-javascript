@@ -126,7 +126,7 @@ var init_logic = function () {
             update_line_positions();
 
             code_changed = false;
-            l_stat.innerHTML = "<div style='color: #00ae00'>OK</div>";
+            l_stat.innerHTML = "<div style='color: #00ae00; font-size:2.0em'>OK</div>";
         }
 
         if (cpu.memory.length == 0) {
@@ -156,6 +156,8 @@ var init_logic = function () {
     // setTimeout(function () {
     //     setInterval(advance, 50);
     // }, 10);
+
+
 
 };
 
