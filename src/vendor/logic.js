@@ -37,7 +37,6 @@ var init_logic = function () {
         for (i = 0; i < _stack.length; i++) {
             let element = _stack[i];
             if (element == undefined) {
-                //element = "";
                 continue;
             }
             _text += element + "\n";
@@ -47,7 +46,6 @@ var init_logic = function () {
     }
 
     ta.onkeydown = function () {
-        console.log("code changed");
         code_changed = true;
     }
 
@@ -58,8 +56,8 @@ var init_logic = function () {
     let line_positions = [];
 
     let update_line_positions = function () {
-        // debugger;
         ta.value = fill_empty_space(ta.value, ta.cols);
+
         let values = ta.value.split("\n");
         let line = 0;
         let start = 0;
@@ -67,7 +65,6 @@ var init_logic = function () {
 
         line_positions = [];
 
-        let _end = 0;
         while (line < num_lines) {
 
             // skip labels
@@ -94,26 +91,15 @@ var init_logic = function () {
             start += values[line].length + 1;
             line = line + 1;
 
-            // skip empty line
-
-
-
         }
     }
 
-    // update_line_positions();
-
     let highlight_step = function () {
-        // console.log("pc=" + cpu.get_pc());
         let lp = line_positions[cpu.get_pc()];
         ta.focus();
         ta.selectionStart = lp.begin;
         ta.selectionEnd = lp.end;
     };
-
-    // select first line. maybe this is just crap calling this here
-    // but it does it's job, so who cares.
-    // highlight_step();
 
     // configure buttons
     let advance = function () {
@@ -152,14 +138,6 @@ var init_logic = function () {
     };
 
     btn_advance.onclick = advance;
-
-    // test automatic playback
-    // setTimeout(function () {
-    //     setInterval(advance, 50);
-    // }, 10);
-
-
-
 };
 
 function label_text(text) {
@@ -286,8 +264,7 @@ var cpu = {
         if (this.registers.sp > 15) {
             throw new Error("Stack overflow!");
         }
-        console.log(this.registers.sp);
-        this.registers.stack.push(v);//stack[this.registers.sp--] = v;
+        this.registers.stack.push(v);
     },
     'pop_stack': function () {
         this.registers.sp--;
@@ -295,7 +272,7 @@ var cpu = {
         if (this.registers.sp < 0) {
             throw new Error("Stack is empty!");
         }
-        return this.registers.stack.pop(); //stack[this.sp++];
+        return this.registers.stack.pop();
     },
     'get_stack': function () {
         return this.registers.stack;
@@ -354,10 +331,8 @@ var cpu = {
             'stream': code,
             'next': function () {
                 if (this.pos == this.length) {
-                    // this.pos = 0;
                     throw new Error("End Of Stream");
                 }
-                // debugger;
                 return this.stream[this.pos++];
             },
             'has_next': function () {
@@ -385,8 +360,7 @@ var cpu = {
 
                 while (label_stack.length != 0) {
                     let _label = label_stack.pop();
-                    console.log("put label=", _label, "at=", index);
-                    this.labels[_label] = index; //index == 0 ? 1 : index;
+                    this.labels[_label] = index;
                 }
             }
 
@@ -400,7 +374,7 @@ var cpu = {
                 case 'mov':
                     let target = lex.next();
                     switch (target) {
-                        case 'acc':  // mov instruction
+                        case 'acc':
                             {
                                 let source = lex.next();
                                 switch (source) {
@@ -431,7 +405,7 @@ var cpu = {
                                 }
                                 break;
                             }
-                        case 'flg': // mov instruction
+                        case 'flg':
                             {
                                 let source = lex.next();
                                 switch (source) {
@@ -668,6 +642,7 @@ var cpu = {
                         });
                         break;
                     }
+                case 'jez':
                 case 'jeq':
                     {
                         let label = lex.next();
@@ -694,22 +669,6 @@ var cpu = {
 
                         this.memory.push(function (a) {
                             if (a.get_flg() != 0) {
-                                a.set_pc(a.labels[label] - 1);
-                            }
-                        });
-
-                        break;
-                    }
-                case 'jez': // duplicate?
-                    {
-                        let label = lex.next();
-                        let r_label = /^[a-z]+$/g;
-                        if (!r_label.test(label)) {
-                            throw new Error("Illegal label defintion: ", label);
-                        }
-
-                        this.memory.push(function (a) {
-                            if (a.get_flg() == 0) {
                                 a.set_pc(a.labels[label] - 1);
                             }
                         });
