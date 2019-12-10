@@ -111,6 +111,10 @@ swp
 jmp begin           
 ```
 
+# Parser Internals
+
+The VASM parsers is technically a LR(1) parser that reads a symbol at a time, looks the next symbol(token), and creates an instruction in form of a javascript function, that will be pushed at the end of the list of instructions. It sucessfully handles labels (jump targets), by pushing the seen label into a temporary stack. If the next token is an instruction, the temporary label stack is being cleared, and the respective label will be stored with the address of that instruction ( which effectively simulates the program counter or "pc"). Since, we simply do not to handle memory addresses directly ( but indeces of the list of instructions), we don't have to calculate the memory offsets all by ourselfes, which makes things quite easy. 
+
 # TODO
 
 - convert logic into ember component
