@@ -11,7 +11,11 @@ the target:
 make install.ember
 ``` 
 
-This will create a new docker image called `emberjs` in your local docker repository. 
+This will create a new docker image called `emberjs` in your local docker repository. Next the application needs to be build. Run
+```Make
+make setup
+``` 
+This will install all npm dependencies.
 
 To launch the application just run:
 

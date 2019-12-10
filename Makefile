@@ -1,5 +1,5 @@
 start:
-	@docker run -d --rm -v $(PWD)/src:/code -u $(shell id -u $(USER)):$(shell id -g $(USER)) -p 4200:4200 emberjs ember serve > pid
+	@docker run -d  -v $(PWD)/src:/code -u $(shell id -u $(USER)):$(shell id -g $(USER)) -p 4200:4200 emberjs ember serve > pid
 	@printf "App started and serving at http://localhost:4200\n"
 
 stop: pid
@@ -7,6 +7,9 @@ stop: pid
 	@rm pid
 
 restart: stop start
+
+setup:
+	@docker run -ti -v $(PWD)/src:/code -u $(shell id -u $(USER)):$(shell id -g $(USER)) -p 4200:4200 emberjs npm install
 
 login: pid
 	@docker exec -ti -w /code $(shell cat pid) /bin/bash
