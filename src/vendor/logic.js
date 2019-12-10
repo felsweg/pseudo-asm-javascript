@@ -1,9 +1,8 @@
 var init_logic = function () {
-    let ta = document.getElementsByTagName("textarea")[0];
+    let ta = document.getElementById("code_editor");
     let btn_advance = document.getElementById("adv");
     let btn_reset = document.getElementById("rst");
-    // let line = 0;
-    // let start = 0;
+    let ta_stack = document.getElementById("code_stack");
 
     let code_changed = true;
 
@@ -31,22 +30,21 @@ var init_logic = function () {
         }
     };
 
-    //     ta.value = "mov acc, 0\n\
-    // main:\n\
-    // add 1\n\
-    // cmp acc,10\n\
-    // jeq end\n\
-    // jmp main\n\
-    // \n\
-    // end:\n\
-    // swp"
+    let update_stack_display = function () {
 
+        let _stack = cpu.get_stack();
+        let _text = "";
+        for (i = 0; i < _stack.length; i++) {
+            let element = _stack[i];
+            if (element == undefined) {
+                //element = "";
+                continue;
+            }
+            _text += element + "\n";
+        }
 
-    // ta.onblur = function () {
-    //     // console.log("reset and compile");
-    //     // cpu.reset();
-    //     // cpu.compile(ta.value);
-    // }
+        ta_stack.value = _text;
+    }
 
     ta.onkeydown = function () {
         console.log("code changed");
@@ -106,7 +104,7 @@ var init_logic = function () {
     // update_line_positions();
 
     let highlight_step = function () {
-        console.log("pc=" + cpu.get_pc());
+        // console.log("pc=" + cpu.get_pc());
         let lp = line_positions[cpu.get_pc()];
         ta.focus();
         ta.selectionStart = lp.begin;
@@ -141,6 +139,9 @@ var init_logic = function () {
         l_acc.innerHTML = label_text(cpu.get_acc());
         l_bak.innerHTML = label_text(cpu.get_bak());
         l_tst.innerHTML = label_text(cpu.get_flg());
+
+
+        update_stack_display();
     };
 
     btn_reset.onclick = function () {
@@ -280,18 +281,25 @@ var cpu = {
         this.registers.pc -= 1;
     },
     'push_stack': function (v) {
-        if (this.registers.sp == 0) {
-            throw new Error("Stack overflow");
+
+        this.registers.sp++;
+        if (this.registers.sp > 15) {
+            throw new Error("Stack overflow!");
         }
-        this.registers.stack[this.registers.sp--] = v;
+        console.log(this.registers.sp);
+        this.registers.stack.push(v);//stack[this.registers.sp--] = v;
     },
     'pop_stack': function () {
-        if (this.registers.sp == 32) {
-            return null;
-        }
-        return this.registers.stack[this.sp++];
-    },
+        this.registers.sp--;
 
+        if (this.registers.sp < 0) {
+            throw new Error("Stack is empty!");
+        }
+        return this.registers.stack.pop(); //stack[this.sp++];
+    },
+    'get_stack': function () {
+        return this.registers.stack;
+    },
     'registers': {
         'acc': 0,
         'bak': 0,
@@ -299,7 +307,7 @@ var cpu = {
         'bak': 0,
         'pc': 0,
         'stack': [],
-        'sp': 32
+        'sp': 0
     },
     'reset': function () {
         this.memory = [];
@@ -313,6 +321,7 @@ var cpu = {
         this.registers.flg = 0;
         this.registers.pc = 0;
     },
+
     'execute': function () {
         this.memory[this.get_pc()](this);
         this.inc_pc();
@@ -323,10 +332,6 @@ var cpu = {
     // the registers of the virtual cpu. 
     // the stream of token gets parsed and transformed into the appropriate function
     // calls. 
-    //
-    // TODO: implement the parser
-    // TODO: match the program counter (pc) with the actual highlighting of code
-    //       to make the actual execution more intuitive
     'compile': function (cc) {
 
         // clean up non-tokens
@@ -458,7 +463,7 @@ var cpu = {
                                 break;
                             }
                         default:
-                            throw new Error("Illegal Target Register: ", target);
+                            throw new Error("Illegal Target Register: '" + target + "'");
                     }
                     break;
                 case 'cmp':
@@ -884,7 +889,7 @@ var cpu = {
                         a.set_bak(acc);
                     })
                     break;
-                case 'psh':
+                case 'push':
                     this.memory.push(function (a) {
                         a.push_stack(a.get_acc());
                     })

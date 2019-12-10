@@ -71,19 +71,4 @@ VASM consists of four registers
 
 # TODO
 
-## 1
-Convert the list of instructions into a map structure to easily find labels. 
-The problem is how to structure the calls with certain labels. 
-One idea would be to store a structure that contains following information:
-
-```javascript
-var ins_graph = {
-    'labels' : [],
-    'next_label: "" 
-}
-``` 
-
-The structure contains a map of labels to a 
-list of instructions, as well as a reference 
-to the adjactent label to call, if the end of 
-instruction has reached, but a label directly follows, and the 
+- convert logic into ember component

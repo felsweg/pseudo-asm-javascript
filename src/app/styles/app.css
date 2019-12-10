@@ -9,7 +9,7 @@ html, body {
     width: 600px;
     margin: 100px auto;
     display: grid;
-    grid-template-columns: 200px 1fr;
+    grid-template-columns: 200px 100px 1fr;
     grid-auto-rows: minimax(600px, auto);
     gap: 20px;
   }
@@ -90,4 +90,21 @@ html, body {
 .control_play {
   grid-column: 2;
   grid-row: 5;
+}
+
+.stack_display {
+  grid-column: 3;
+  grid-row: 2/5;
+  
+}
+
+/* textarea#code_stack {
+  border: none;
+  background: transparent;
+  color: #CABA00;
+} */
+
+.stack_display_header {
+  grid-column: 3;
+  grid-row: 1;
 }
