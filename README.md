@@ -69,6 +69,27 @@ VASM consists of four registers
 | (ANY)    | Access data from any port, whatever provides data first                       |
 | (ZER)    | A zero registers. This mainly does nothing, when read from it provides a zero |
 
+# Example Code
+
+The following example code initializes `acc` with `0`
+and loops, adding `1` on each iteration, `swp` the result of `acc` to
+`bak` returning to the beginning of the list of instructions.
+
+```
+begin:              
+mov acc, 0          
+                    
+loop:               
+add 1               
+cmp acc, 10         
+jeq end             
+jmp loop            
+                    
+end:                
+swp                 
+jmp begin           
+```
+
 # TODO
 
 - convert logic into ember component
