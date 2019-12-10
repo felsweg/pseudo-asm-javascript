@@ -2,6 +2,27 @@
 
 This project implements a fictional assembly language interpreter in javascript. The main purpose of this project is to get acquainted with (toy) assembly languages, and the concepts behind it. 
 
+## Quickstart
+
+Everything is handled and done via `make` and docker. To install emberjs, call
+the target:
+
+```Make
+make install.ember
+``` 
+
+This will create a new docker image called `emberjs` in your local docker repository. 
+
+To launch the application just run:
+
+```
+make
+```
+
+This will start `ember serve` on the code repository. A small message will show on the console, how to access the application via the browsers.
+
+Per default it should be [http://localhost:4200](http://localhost:4200)
+
 ## Instruction Set 
 
 The following tables give an overview of the instructions, the memory layout, and the registers.
