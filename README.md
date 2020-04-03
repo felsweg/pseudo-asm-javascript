@@ -2,6 +2,8 @@
 
 This project implements a fictional assembly language interpreter in javascript. The main purpose of this project is to get acquainted with (toy) assembly languages, and the concepts behind it. 
 
+![vasm animation](media/vasm.gif)
+
 ## Quickstart
 
 Everything is handled and done via `make` and docker. To install emberjs, call
