@@ -1,6 +1,6 @@
-# Virtual Assembly Interpreter in Javascript (VASM)
+# Virtual Assembler Interpreter in Javascript (VASM)
 
-This project implements a fictional assembly language interpreter in javascript. The main purpose of this project is to get acquainted with (toy) assembly languages, and the concepts behind it. 
+This project implements a fictional assembler language interpreter in javascript. The main purpose of this project is to get acquainted with (toy) assembler languages, and the concepts behind it. 
 
 ![vasm animation](media/vasm.gif)
 
